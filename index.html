@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Valentine 💖</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #ffd1dc, #ff9aa2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  .card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+    width: 90%;
+    max-width: 350px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  }
+
+  h1 {
+    color: #ff4d6d;
+  }
+
+  button {
+    border: none;
+    padding: 15px 25px;
+    font-size: 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    margin: 10px;
+  }
+
+  #yes {
+    background: #ff4d6d;
+    color: white;
+  }
+
+  #no {
+    background: #ddd;
+    position: absolute;
+  }
+
+  .hearts {
+    position: fixed;
+    font-size: 24px;
+    animation: float 3s linear forwards;
+  }
+
+  @keyframes float {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-300px); opacity: 0; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>Mariana, will you be my Valentine? 💕</h1>
+    <button id="yes">Yes 💖</button>
+    <button id="no">No</button>
+  </div>
+
+<script>
+const noBtn = document.getElementById("no");
+noBtn.addEventListener("mouseover", () => {
+  noBtn.style.left = Math.random() * 80 + "%";
+  noBtn.style.top = Math.random() * 80 + "%";
+});
+
+document.getElementById("yes").addEventListener("click", () => {
+  for(let i=0;i<20;i++){
+    let heart = document.createElement("div");
+    heart.className = "hearts";
+    heart.innerText = "💖";
+    heart.style.left = Math.random()*100 + "vw";
+    heart.style.bottom = "0px";
+    document.body.appendChild(heart);
+    setTimeout(()=>heart.remove(),3000);
+  }
+  alert("YAY!!! 💘💘💘");
+});
+</script>
+</body>
+</html>
