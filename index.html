@@ -30,7 +30,6 @@
   .genCard h1 { margin: 0 0 10px; color:#ff4d6d; font-size: 24px; }
   .genCard p { margin: 0 0 18px; opacity: 0.85; }
 
-  .row { display:flex; gap: 10px; }
   input {
     width: 100%;
     padding: 14px 14px;
@@ -111,6 +110,7 @@
     width: 90%;
     max-width: 340px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    position: relative;
   }
   h2 { margin:0 0 10px; color:#ff4d6d; }
   .sub { margin: 0 0 18px; opacity: .85; }
@@ -123,18 +123,34 @@
     margin: 10px;
   }
   #yes { background:#ff4d6d; color:#fff; }
-  #no { background:#eee; position:absolute; }
+  #no { background:#eee; position:absolute; left: 50%; transform: translateX(-50%); top: 250px; }
 
   .heart { position:fixed; font-size: 24px; animation: float 3s linear forwards; }
   @keyframes float { from{ transform:translateY(0); opacity:1; } to{ transform:translateY(-300px); opacity:0; } }
+
+  /* little pop message (no alerts) */
+  #noToast{
+    display:none;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.8);
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-size: 14px;
+    color: #222;
+  }
 </style>
 </head>
 
 <body>
 
-<!-- Optional background music (upload music.mp3 to repo to enable) -->
+<!-- Background music (must exist in repo with exact name). If your file is Music.mp3, change src to Music.mp3 -->
 <audio id="bgMusic" loop>
   <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<!-- NOPE/FART SOUND (upload a file named nope.mp3) -->
+<audio id="nopeSound" preload="auto">
+  <source src="nope.mp3" type="audio/mpeg">
 </audio>
 
 <!-- GENERATOR -->
@@ -151,7 +167,7 @@
       <div class="linkBox" id="linkOut"></div>
       <button class="btnSecondary" onclick="copyLink()">Copy Link</button>
       <button class="btnSecondary" onclick="openPreview()">Open Preview</button>
-      <div class="tiny">Send the copied link in iMessage. Music starts after they tap “OPEN YOUR VALENTINE”.</div>
+      <div class="tiny">Music starts after they tap “OPEN YOUR VALENTINE”.</div>
     </div>
   </div>
 </div>
@@ -168,7 +184,16 @@
 <div id="app">
   <div class="card">
     <h2 id="valTitle"></h2>
-    <p class="sub">Will you be my Valentine? 💘</p>
+
+    <p class="sub" id="question">Will you be my Valentine? 💘</p>
+
+    <div id="success" style="display:none;">
+      <h2 style="color:#ff4d6d;">YAY!!! 💖💖💖</h2>
+      <p class="sub">You just made my day 🥹</p>
+    </div>
+
+    <div id="noToast">Whoops… try again 😈</div>
+
     <button id="yes">Yes 💖</button>
     <button id="no">No</button>
   </div>
@@ -184,6 +209,20 @@
     return (str || "").replace(/[<>"]/g,"").trim().slice(0, 30);
   }
 
+  // Vibration helper (works on many Androids; iPhone may ignore)
+  function buzz(ms){
+    try { if (navigator.vibrate) navigator.vibrate(ms); } catch(e) {}
+  }
+
+  // Sound helper
+  function playSound(el){
+    if(!el) return;
+    try {
+      el.currentTime = 0;
+      el.play();
+    } catch(e) {}
+  }
+
   // --- Mode select: generator vs personalized ---
   const toParam = safeName(qs("to"));
 
@@ -192,10 +231,8 @@
   const app = document.getElementById("app");
 
   if(!toParam){
-    // No ?to= name → show generator
     generator.style.display = "flex";
   } else {
-    // Has ?to= name → show reel flow
     imessage.style.display = "block";
 
     document.getElementById("bubbleText").innerHTML =
@@ -209,7 +246,8 @@
   function makeLink(){
     const name = safeName(document.getElementById("toName").value);
     if(!name){
-      alert("Type a name first 🙂");
+      // No alert popups. Keep it simple:
+      document.getElementById("toName").focus();
       return;
     }
     const base = window.location.origin + window.location.pathname;
@@ -218,22 +256,21 @@
 
     document.getElementById("result").style.display = "block";
     document.getElementById("linkOut").textContent = link;
+    buzz(30);
   }
 
   async function copyLink(){
     if(!window._generatedLink) return;
     try {
       await navigator.clipboard.writeText(window._generatedLink);
-      alert("Copied! Now paste it into iMessage 💖");
+      buzz(40);
     } catch (e){
-      // Fallback for older iOS: select text
       const el = document.getElementById("linkOut");
       const range = document.createRange();
       range.selectNodeContents(el);
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      alert("Tap and hold the highlighted link → Copy.");
     }
   }
 
@@ -245,26 +282,48 @@
   // --- Reel flow: open the app + start music after tap (iOS-safe) ---
   function openApp(){
     const music = document.getElementById("bgMusic");
-    // Attempt play only after user tap
-    music.play().catch(()=>{ /* if no file or blocked, ignore */ });
+    playSound(music);
+    buzz(25);
 
     imessage.style.display = "none";
     app.style.display = "flex";
   }
 
-  // --- No button dodges ---
+  // --- Buttons ---
   const noBtn = document.getElementById("no");
-  noBtn.addEventListener("mouseover", () => {
-    noBtn.style.left = Math.random()*80 + "%";
-    noBtn.style.top = Math.random()*80 + "%";
-  });
-  noBtn.addEventListener("click", () => {
-    noBtn.style.left = Math.random()*80 + "%";
-    noBtn.style.top = Math.random()*80 + "%";
+  const nopeSound = document.getElementById("nopeSound");
+  const noToast = document.getElementById("noToast");
+
+  function dodgeNo(){
+    // play sound + tiny vibration
+    playSound(nopeSound);
+    buzz(60);
+
+    // show "whoops" text briefly
+    noToast.style.display = "block";
+    clearTimeout(window._toastT);
+    window._toastT = setTimeout(()=>{ noToast.style.display = "none"; }, 900);
+
+    // move the No button
+    const left = Math.random()*70 + 10; // 10% to 80%
+    const top = Math.random()*45 + 35;  // 35% to 80%
+    noBtn.style.left = left + "%";
+    noBtn.style.top = top + "%";
+    noBtn.style.transform = "translateX(0)";
+  }
+
+  // On hover (desktop) + on click (phones)
+  noBtn.addEventListener("mouseover", dodgeNo);
+  noBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    dodgeNo();
   });
 
-  // --- Yes button hearts ---
+  // --- YES button (no Safari popup) ---
   document.getElementById("yes").addEventListener("click", () => {
+    buzz([40, 20, 40]); // little double buzz (may not work on iPhone)
+
+    // hearts
     for(let i=0;i<25;i++){
       let h = document.createElement("div");
       h.className = "heart";
@@ -274,7 +333,15 @@
       document.body.appendChild(h);
       setTimeout(()=>h.remove(), 3000);
     }
-    setTimeout(()=>alert("YAY!!! 💘💘💘"), 150);
+
+    // hide question + buttons
+    document.getElementById("question").style.display = "none";
+    document.getElementById("yes").style.display = "none";
+    document.getElementById("no").style.display = "none";
+    noToast.style.display = "none";
+
+    // show success
+    document.getElementById("success").style.display = "block";
   });
 </script>
 
